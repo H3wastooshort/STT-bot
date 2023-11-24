@@ -2,84 +2,151 @@ import discord
 from discord.ext import commands
 import yaml
 import urllib.request
-import speech_recognition as sr
-
 import traceback
 from pydub import AudioSegment
-
-
+import requests
+import time
+import logging
 import tracemalloc
+
+
+class SpeechToText(commands.Cog):
+    "Commands for speech to text"
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Start tracing memory allocations
 tracemalloc.start()
 
-
+# Constants
 AUDIO_FILE_OGG = "voice-message.ogg"
 AUDIO_FILE_WAV = "voice-message.wav"
 
-bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
-config = yaml.safe_load(open("config.yaml"))
+# Load configuration
+with open("config.yaml", "r") as file:
+    config = yaml.safe_load(file)
+
 token = config["token"]
-print(config)
-print(token)
+API_KEY_ID = config["KeyId"]
+API_KEY_SECRET = config["KeySecret"]
+RESULT_TYPE = 4
+headers = {"keyId": API_KEY_ID, "keySecret": API_KEY_SECRET}
+LANG = "fr"
 
-def convert_ogg_to_wav(ogg_file, wav_file_path=None):
+# Discord Bot Setup
+bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
+
+def create(wav_file_path: str) -> str:
+    create_data = {"lang": LANG}
+    files = {}
+    create_url = "https://api.speechflow.io/asr/file/v1/create"
+
     try:
-        # Load the OGG file
+        if wav_file_path.startswith('http'):
+            create_data['remotePath'] = wav_file_path
+            logger.info('Submitting a remote file')
+            response = requests.post(create_url, data=create_data, headers=headers)
+        else:
+            logger.info('Submitting a local file')
+            create_url += "?lang=" + LANG
+            files['file'] = open(wav_file_path, "rb")
+            response = requests.post(create_url, headers=headers, files=files)
+
+        response.raise_for_status()
+        create_result = response.json()
+        logger.info(create_result)
+
+        if create_result["code"] == 10000:
+            return create_result["taskId"]
+        else:
+            logger.error("Create error: %s", create_result["msg"])
+            return ""
+
+    except requests.RequestException as e:
+        logger.error("Create request failed: %s", e)
+        return ""
+
+def query(task_id: str) -> dict:
+    query_url = f"https://api.speechflow.io/asr/file/v1/query?taskId={task_id}&resultType={RESULT_TYPE}"
+    logger.info('Querying transcription result')
+
+    while True:
+        try:
+            response = requests.get(query_url, headers=headers)
+            response.raise_for_status()
+            query_result = response.json()
+
+            if query_result["code"] == 11000:
+                logger.info('Transcription result obtained')
+                return query_result
+            elif query_result["code"] == 11001:
+                logger.info('Waiting for transcription result')
+                time.sleep(3)
+                continue
+            else:
+                logger.error("Transcription error: %s", query_result['msg'])
+                break
+
+        except requests.RequestException as e:
+            logger.error("Query request failed: %s", e)
+            break
+
+    return query_result
+
+def transcribe_audio(wav_file_path: str) -> str:
+    task_id = create(wav_file_path)
+    if not task_id:
+        return "Error creating transcription task"
+
+    query_result = query(task_id)
+    if query_result.get("code") == 11000:
+        return query_result.get("result", "No transcription result found")
+    else:
+        return "Error querying transcription result"
+
+def convert_ogg_to_wav(ogg_file: str, wav_file_path: str = None) -> str:
+    try:
         audio = AudioSegment.from_ogg(ogg_file)
-
-        # Export as an wav file
         audio.export(wav_file_path, format="wav")
-
         return f"File converted successfully: {wav_file_path}"
     except Exception as e:
+        logger.error("Error converting file: %s", e)
         return f"Error converting file: {e}"
 
-class SpeechToText(commands.Cog):
-    "pouet"
-
 @bot.event
-async def on_message(message):
-    print("Message received")
-    # Check if the message is from the bot itself
+async def on_message(message: discord.Message):
+    logger.info("Message received")
     if message.author == bot.user:
         return
 
-    # Search for voice message URLs in the message content
-    url = message.attachments[0]
-    if url:
-        print(f"Voice message URL found: {url}")
+    url = str(message.attachments[0]) if message.attachments else ""
+    if url and ".ogg" in url:
+        logger.info(f"Voice message URL found: {url}")
         try:
             opener = urllib.request.URLopener()
             opener.addheader("User-Agent", "Mozilla/5.0")
-            opener.retrieve(str(url), AUDIO_FILE_OGG)
+            opener.retrieve(url, AUDIO_FILE_OGG)
         except Exception as e:
+            logger.error("Error retrieving file: %s", e)
             traceback.print_exc()
-        #conversion to wav
+
+        output = transcribe_audio(url)
+        if output != "Error querying transcription result":
+            await message.channel.send(output)
+            return
+
         convert_ogg_to_wav(AUDIO_FILE_OGG, AUDIO_FILE_WAV)
-        # Transcribe the voice message
-        r = sr.Recognizer()
-        with sr.AudioFile(AUDIO_FILE_WAV) as source:
-            audio = r.record(source)  # read the entire audio file
-        # recognize speech using Sphinx
-        output = "Could not understand audio"
-        try:
-            output = r.recognize_sphinx(audio)
-            print("Sphinx thinks you said " + output)
-        except sr.UnknownValueError:
-            print("Sphinx could not understand audio")
-            traceback.print_exc()
-        except sr.RequestError as e:
-            print("Sphinx error; {0}".format(e))
-            traceback.print_exc()
-
+        output = transcribe_audio(AUDIO_FILE_WAV)
         await message.channel.send(output)
-
-    await bot.process_commands(message)
 
 @bot.event
 async def on_ready():
-    print("Started!")
+    logger.info("Bot started!")
     await bot.change_presence(activity=discord.Game(name="user audio"))
 
-async def setup(bot):
+async def setup():
     bot.add_cog(SpeechToText())
+
 bot.run(token)
