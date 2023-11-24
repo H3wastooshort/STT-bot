@@ -7,41 +7,13 @@ import speech_recognition as sr
 import traceback
 from pydub import AudioSegment
 
+
 import tracemalloc
 tracemalloc.start()
-
-from os import path
-
-from pocketsphinx import *
-
-MODELDIR = "pocketsphinx/model"
-
-# Create a decoder with certain model
-config = Decoder.default_config()
-config.set_string('-hmm', path.join(MODELDIR, 'en-us/en-us'))
-config.set_string('-lm', path.join(MODELDIR, 'en-us/en-us.lm.bin'))
-config.set_string('-dict', path.join(MODELDIR, 'en-us/cmudict-en-us.dict'))
-decoder = Decoder(config)
-
-# Decode streaming data.
-def decodeSpeech(audio_file):
-    decoder = Decoder(config)
-    decoder.start_utt()
-    stream = open(path.join(audio_file), 'rb')
-    while True:
-        buf = stream.read(1024)
-        if buf:
-            decoder.process_raw(buf, False, False)
-        else:
-            break
-    decoder.end_utt()
-    print ('Best hypothesis segments: ', [seg.word for seg in decoder.seg()])
-    return [seg.word for seg in decoder.seg()]
 
 
 AUDIO_FILE_OGG = "voice-message.ogg"
 AUDIO_FILE_WAV = "voice-message.wav"
-
 
 bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
 config = yaml.safe_load(open("config.yaml"))
@@ -90,7 +62,7 @@ async def on_message(message):
         # recognize speech using Sphinx
         output = "Could not understand audio"
         try:
-            output = r.recognize_sphinx(audio, language="fr-FR")
+            output = r.recognize_sphinx(audio)
             print("Sphinx thinks you said " + output)
         except sr.UnknownValueError:
             print("Sphinx could not understand audio")
