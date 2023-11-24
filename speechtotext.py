@@ -38,6 +38,16 @@ LANG = "fr"
 # Discord Bot Setup
 bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
 
+class ButtonsView(discord.ui.View):
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+    @discord.ui.button(label='Show transcription', style=discord.ButtonStyle.primary, emoji="✍️")
+    async def button_callback(self, interaction : discord.Interaction, button):
+        await interaction.response.send_message(self.message, ephemeral=True)
+
+# CUSTOM FUNCTIONS
+
 def create(wav_file_path: str) -> str:
     create_data = {"lang": LANG}
     files = {}
@@ -115,6 +125,8 @@ def convert_ogg_to_wav(ogg_file: str, wav_file_path: str = None) -> str:
         logger.error("Error converting file: %s", e)
         return f"Error converting file: {e}"
 
+# DISCORD BOT EVENTS
+
 @bot.event
 async def on_message(message: discord.Message):
     logger.info("Message received")
@@ -124,6 +136,7 @@ async def on_message(message: discord.Message):
     url = str(message.attachments[0]) if message.attachments else ""
     if url and ".ogg" in url:
         logger.info(f"Voice message URL found: {url}")
+        await message.channel.send("", view=ButtonsView(message))
         try:
             opener = urllib.request.URLopener()
             opener.addheader("User-Agent", "Mozilla/5.0")
