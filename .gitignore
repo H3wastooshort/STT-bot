@@ -1,2 +1,5 @@
 config.yaml
 stt/
+voice-message.ogg
+voice-message.wav
+.venv/

@@ -1,10 +1,46 @@
 import discord
 from discord.ext import commands
 import yaml
-import re
+import urllib.request
+import speech_recognition as sr
+
+import traceback
+from pydub import AudioSegment
 
 import tracemalloc
 tracemalloc.start()
+
+from os import path
+
+from pocketsphinx import *
+
+MODELDIR = "pocketsphinx/model"
+
+# Create a decoder with certain model
+config = Decoder.default_config()
+config.set_string('-hmm', path.join(MODELDIR, 'en-us/en-us'))
+config.set_string('-lm', path.join(MODELDIR, 'en-us/en-us.lm.bin'))
+config.set_string('-dict', path.join(MODELDIR, 'en-us/cmudict-en-us.dict'))
+decoder = Decoder(config)
+
+# Decode streaming data.
+def decodeSpeech(audio_file):
+    decoder = Decoder(config)
+    decoder.start_utt()
+    stream = open(path.join(audio_file), 'rb')
+    while True:
+        buf = stream.read(1024)
+        if buf:
+            decoder.process_raw(buf, False, False)
+        else:
+            break
+    decoder.end_utt()
+    print ('Best hypothesis segments: ', [seg.word for seg in decoder.seg()])
+    return [seg.word for seg in decoder.seg()]
+
+
+AUDIO_FILE_OGG = "voice-message.ogg"
+AUDIO_FILE_WAV = "voice-message.wav"
 
 
 bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
@@ -13,32 +49,65 @@ token = config["token"]
 print(config)
 print(token)
 
-class myCog(commands.Cog):
-    "Bot commands"
+def convert_ogg_to_wav(ogg_file, wav_file_path=None):
+    try:
+        # Load the OGG file
+        audio = AudioSegment.from_ogg(ogg_file)
 
-    def __init__(self, bot):
-        self.bot = bot
+        # Export as an wav file
+        audio.export(wav_file_path, format="wav")
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        print("Message received")
-        # Check if the message is from the bot itself
-        if message.author == self.bot.user:
-            return
+        return f"File converted successfully: {wav_file_path}"
+    except Exception as e:
+        return f"Error converting file: {e}"
 
-        # Regular expression to match Discord voice message URLs
-        voice_msg_pattern = r"https://cdn\.discordapp\.com/attachments/\d+/\d+/voice-message\.ogg"
-        
-        # Search for voice message URLs in the message content
-        voice_msg_urls = re.findall(voice_msg_pattern, message.content)
-        if voice_msg_urls:
-            for url in voice_msg_urls:
-                print(f"Voice message URL found: {url}")
+class SpeechToText(commands.Cog):
+    "pouet"
+
+@bot.event
+async def on_message(message):
+    print("Message received")
+    # Check if the message is from the bot itself
+    if message.author == bot.user:
+        return
+
+    # Search for voice message URLs in the message content
+    url = message.attachments[0]
+    if url:
+        print(f"Voice message URL found: {url}")
+        try:
+            opener = urllib.request.URLopener()
+            opener.addheader("User-Agent", "Mozilla/5.0")
+            opener.retrieve(str(url), AUDIO_FILE_OGG)
+        except Exception as e:
+            traceback.print_exc()
+        #conversion to wav
+        convert_ogg_to_wav(AUDIO_FILE_OGG, AUDIO_FILE_WAV)
+        # Transcribe the voice message
+        r = sr.Recognizer()
+        with sr.AudioFile(AUDIO_FILE_WAV) as source:
+            audio = r.record(source)  # read the entire audio file
+        # recognize speech using Sphinx
+        output = "Could not understand audio"
+        try:
+            output = r.recognize_sphinx(audio, language="fr-FR")
+            print("Sphinx thinks you said " + output)
+        except sr.UnknownValueError:
+            print("Sphinx could not understand audio")
+            traceback.print_exc()
+        except sr.RequestError as e:
+            print("Sphinx error; {0}".format(e))
+            traceback.print_exc()
+
+        await message.channel.send(output)
+
+    await bot.process_commands(message)
 
 @bot.event
 async def on_ready():
     print("Started!")
     await bot.change_presence(activity=discord.Game(name="user audio"))
 
-bot.add_cog(myCog(bot))
+async def setup(bot):
+    bot.add_cog(SpeechToText())
 bot.run(token)
