@@ -3,3 +3,4 @@ stt/
 voice-message.ogg
 voice-message.wav
 .venv/
+__pycache__/
