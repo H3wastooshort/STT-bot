@@ -5,8 +5,11 @@ import urllib.request
 import traceback
 import logging
 import tracemalloc
-import whisper_transcribe as wt
 from pathlib import Path
+import json
+
+import whisper_transcribe as wt
+import cache_handling as c_handle
 
 
 class SpeechToText(commands.Cog):
@@ -26,19 +29,24 @@ with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
     AUDIO_PATH = Path(config["audio_path"])
     AUDIO_FILE_OGG = config["audio_file"]
+    CACHE = Path(config["cache"])
     TOKEN = config["token"]
 
 # Discord Bot Setup
 bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
 
 class ButtonsView(discord.ui.View):
-    def __init__(self, message=None):
+    def __init__(self, message : discord.Message = None):
         super().__init__(timeout=None)
         self.message = message
+
     @discord.ui.button(label='Show transcription', custom_id="buttons", style=discord.ButtonStyle.primary, emoji="✍️")
     async def button_callback(self, interaction : discord.Interaction, button):
-        with open("output.txt", "r") as file:
-            text = file.read()
+        #open cache
+        with open(Path(__file__).parent / AUDIO_PATH / CACHE, "r") as file:
+            cache = json.load(file)
+            message = cache[str(self.message.id)]
+            text = f"**{message['author']}** said:\n ```{message['content']}```"
             try :
                 await interaction.response.send_message(text, ephemeral=True)
             except discord.errors.HTTPException as e:
@@ -65,9 +73,10 @@ async def on_message(message: discord.Message):
             traceback.print_exc()
 
         output = await wt.transcribe()
-        with open("output.txt", "w") as file:
-            file.write(output)
-        logger.info("Transcription completed")
+        if c_handle.add_to_cache(message.id, message.author, message.created_at, output) :
+            logger.info("Transcription completed")
+        else :
+            logger.error("Error adding to cache")
 
 @bot.event
 async def on_ready():
