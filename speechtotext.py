@@ -39,7 +39,11 @@ class ButtonsView(discord.ui.View):
     async def button_callback(self, interaction : discord.Interaction, button):
         with open("output.txt", "r") as file:
             text = file.read()
-            await interaction.response.send_message(text, ephemeral=True)
+            try :
+                await interaction.response.send_message(text, ephemeral=True)
+            except discord.errors.HTTPException as e:
+                logger.error("Error sending message: %s", e)
+                await interaction.response.send_message("Error during the transcription", ephemeral=True)
 
 # DISCORD BOT EVENTS
 @bot.event
@@ -63,6 +67,7 @@ async def on_message(message: discord.Message):
         output = await wt.transcribe()
         with open("output.txt", "w") as file:
             file.write(output)
+        logger.info("Transcription completed")
 
 @bot.event
 async def on_ready():
