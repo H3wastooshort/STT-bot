@@ -43,18 +43,7 @@ class ButtonsView(discord.ui.View):
             text = file.read()
             await interaction.response.send_message(text, ephemeral=True)
 
-# CUSTOM FUNCTIONS
-def convert_ogg_to_wav(ogg_file: str, wav_file_path: str = None) -> str:
-    try:
-        audio = AudioSegment.from_ogg(ogg_file)
-        audio.export(wav_file_path, format="wav")
-        return f"File converted successfully: {wav_file_path}"
-    except Exception as e:
-        logger.error("Error converting file: %s", e)
-        return f"Error converting file: {e}"
-
 # DISCORD BOT EVENTS
-
 @bot.event
 async def on_message(message: discord.Message):
     logger.info("Message received")
@@ -73,7 +62,6 @@ async def on_message(message: discord.Message):
             logger.error("Error retrieving file: %s", e)
             traceback.print_exc()
 
-        convert_ogg_to_wav(AUDIO_FILE_OGG, AUDIO_FILE_WAV)
         output = await wt.transcribe()
         with open("output.txt", "w") as file:
             file.write(output)
