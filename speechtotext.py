@@ -3,10 +3,10 @@ from discord.ext import commands
 import yaml
 import urllib.request
 import traceback
-from pydub import AudioSegment
 import logging
 import tracemalloc
 import whisper_transcribe as wt
+from pathlib import Path
 
 
 class SpeechToText(commands.Cog):
@@ -20,15 +20,13 @@ logger = logging.getLogger(__name__)
 tracemalloc.start()
 
 # Constants
-AUDIO_FILE_OGG = "voice-message.ogg"
-AUDIO_FILE_WAV = "voice-message.wav"
 
 # Load configuration
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
-
-token = config["token"]
-LANG = config["lang"]
+    AUDIO_PATH = Path(config["audio_path"])
+    AUDIO_FILE_OGG = config["audio_file"]
+    TOKEN = config["token"]
 
 # Discord Bot Setup
 bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
@@ -57,7 +55,7 @@ async def on_message(message: discord.Message):
         try:
             opener = urllib.request.URLopener()
             opener.addheader("User-Agent", "Mozilla/5.0")
-            opener.retrieve(url, AUDIO_FILE_OGG)
+            opener.retrieve(url, Path(__file__).parent / AUDIO_PATH / AUDIO_FILE_OGG)
         except Exception as e:
             logger.error("Error retrieving file: %s", e)
             traceback.print_exc()
@@ -75,4 +73,4 @@ async def on_ready():
 async def setup():
     bot.add_cog(SpeechToText())
 
-bot.run(token)
+bot.run(TOKEN)
