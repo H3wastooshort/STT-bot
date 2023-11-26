@@ -34,10 +34,10 @@ LANG = config["lang"]
 bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
 
 class ButtonsView(discord.ui.View):
-    def __init__(self, message):
-        super().__init__()
+    def __init__(self, message=None):
+        super().__init__(timeout=None)
         self.message = message
-    @discord.ui.button(label='Show transcription', style=discord.ButtonStyle.primary, emoji="✍️")
+    @discord.ui.button(label='Show transcription', custom_id="buttons", style=discord.ButtonStyle.primary, emoji="✍️")
     async def button_callback(self, interaction : discord.Interaction, button):
         with open("output.txt", "r") as file:
             text = file.read()
@@ -81,6 +81,7 @@ async def on_message(message: discord.Message):
 @bot.event
 async def on_ready():
     logger.info("Bot started!")
+    bot.add_view(ButtonsView())
     await bot.change_presence(activity=discord.Game(name="user audio"))
 
 async def setup():

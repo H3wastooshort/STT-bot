@@ -1,4 +1,5 @@
 config.yaml
+output.txt
 stt/
 voice-message.ogg
 voice-message.wav
