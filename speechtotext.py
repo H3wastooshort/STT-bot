@@ -6,7 +6,7 @@ import traceback
 from pydub import AudioSegment
 import logging
 import tracemalloc
-import transcribe
+import whisper_transcribe as wt
 
 
 class SpeechToText(commands.Cog):
@@ -39,7 +39,9 @@ class ButtonsView(discord.ui.View):
         self.message = message
     @discord.ui.button(label='Show transcription', style=discord.ButtonStyle.primary, emoji="✍️")
     async def button_callback(self, interaction : discord.Interaction, button):
-        await interaction.response.send_message(self.message, ephemeral=True)
+        with open("output.txt", "r") as file:
+            text = file.read()
+            await interaction.response.send_message(text, ephemeral=True)
 
 # CUSTOM FUNCTIONS
 def convert_ogg_to_wav(ogg_file: str, wav_file_path: str = None) -> str:
@@ -71,14 +73,10 @@ async def on_message(message: discord.Message):
             logger.error("Error retrieving file: %s", e)
             traceback.print_exc()
 
-        output = transcribe.transcribe_audio(url)
-        if output != "Error querying transcription result":
-            await message.channel.send(output)
-            return
-
         convert_ogg_to_wav(AUDIO_FILE_OGG, AUDIO_FILE_WAV)
-        output = transcribe.transcribe_audio(AUDIO_FILE_WAV)
-        await message.channel.send(output)
+        output = await wt.transcribe()
+        with open("output.txt", "w") as file:
+            file.write(output)
 
 @bot.event
 async def on_ready():
