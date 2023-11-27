@@ -8,8 +8,7 @@ import tracemalloc
 from pathlib import Path
 import json
 
-import whisper_transcribe as wt
-import cache_handling as c_handle
+from utils import whisper_transcribe as wt, cache_handling as c_handle
 
 
 class SpeechToText(commands.Cog):
