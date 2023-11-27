@@ -69,7 +69,7 @@ async def on_message(message: discord.Message):
     url = str(message.attachments[0]) if message.attachments else ""
     if url and ".ogg" in url:
         logger.info(f"Voice message URL found: {url}")
-        view_message = await message.channel.send("", view=ButtonsView(message))
+        view_message = await message.channel.send("", view=ButtonsView(message), reference = message, mention_author=False)
         try:
             opener = urllib.request.URLopener()
             opener.addheader("User-Agent", "Mozilla/5.0")
