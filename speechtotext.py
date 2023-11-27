@@ -42,6 +42,12 @@ class ButtonsView(discord.ui.View):
 
     @discord.ui.button(label='Show transcription', custom_id="buttons", style=discord.ButtonStyle.primary, emoji="✍️")
     async def button_callback(self, interaction : discord.Interaction, button):
+        if self.message is None:
+            date = interaction.message.created_at
+            history = interaction.channel.history(before=date, limit=1)
+            async for message in history:
+                self.message = message
+
         #open cache
         with open(Path(__file__).parent / AUDIO_PATH / CACHE, "r") as file:
             cache = json.load(file)
