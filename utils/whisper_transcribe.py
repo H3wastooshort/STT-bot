@@ -8,7 +8,7 @@ with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
     AUDIO_PATH = Path(config["audio_path"])
     AUDIO_FILE_OGG = config["audio_file"]
 
-async def transcribe() :
+def transcribe() :
     #load model
     model = whisper.load_model("small")
 

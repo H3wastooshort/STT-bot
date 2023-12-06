@@ -7,6 +7,7 @@ import logging
 import tracemalloc
 from pathlib import Path
 import json
+import threading
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 
@@ -34,6 +35,7 @@ with open("config.yaml", "r") as file:
 # Discord Bot Setup
 bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
 
+# INTERACTION VIEW
 class ButtonsView(discord.ui.View):
     def __init__(self, message : discord.Message = None):
         super().__init__(timeout=None)
@@ -58,6 +60,16 @@ class ButtonsView(discord.ui.View):
                 logger.error("Error sending message: %s", e)
                 await interaction.response.send_message("Error during the transcription", ephemeral=True)
 
+# UTIL
+def transcribe_and_cache(message : discord.Message, view_message : discord.Message) :
+    #transcription and cache
+    output = wt.transcribe()
+    print(output)
+    if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
+        logger.info("Transcription completed")
+    else :
+        logger.error("Error adding to cache")
+
 # DISCORD BOT EVENTS
 @bot.event
 async def on_message(message: discord.Message):
@@ -78,11 +90,8 @@ async def on_message(message: discord.Message):
             traceback.print_exc()
 
         #transcription and cache
-        output = await wt.transcribe()
-        if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
-            logger.info("Transcription completed")
-        else :
-            logger.error("Error adding to cache")
+        t = threading.Thread(target=transcribe_and_cache, args=(message, view_message))
+        t.start()
 
 @bot.event
 async def on_ready():    
