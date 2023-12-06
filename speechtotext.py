@@ -50,15 +50,18 @@ class ButtonsView(discord.ui.View):
                 self.message = message
 
         #open cache
-        with open(Path(__file__).parent / AUDIO_PATH / CACHE, "r") as file:
-            cache = json.load(file)
-            message = cache[str(self.message.id)]
-            text = f"**{message['author']}** said:\n ```{message['content']}```"
-            try :
-                await interaction.response.send_message(text, ephemeral=True)
-            except discord.errors.HTTPException as e:
-                logger.error("Error sending message: %s", e)
-                await interaction.response.send_message("Error during the transcription", ephemeral=True)
+        try :
+            with open(Path(__file__).parent / AUDIO_PATH / CACHE, "r") as file:
+                cache = json.load(file)
+                message = cache[str(self.message.id)]
+                text = f"**{message['author']}** said:\n ```{message['content']}```"
+                try :
+                    await interaction.response.send_message(text, ephemeral=True)
+                except discord.errors.HTTPException as e:
+                    logger.error("Error sending message: %s", e)
+                    await interaction.response.send_message("Error during the transcription", ephemeral=True)
+        except :
+            await interaction.response.send_message("This message has not been transcribed yet or is too old.", ephemeral=True)
 
 # UTIL
 def transcribe_and_cache(message : discord.Message, view_message : discord.Message) :
