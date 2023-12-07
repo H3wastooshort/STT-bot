@@ -8,6 +8,7 @@ import tracemalloc
 from pathlib import Path
 import json
 import threading
+import asyncio
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 
@@ -22,7 +23,8 @@ logger = logging.getLogger(__name__)
 # Start tracing memory allocations
 tracemalloc.start()
 
-# Constants
+#Global variable
+last_transcription = ""
 
 # Load configuration
 with open("config.yaml", "r") as file:
@@ -67,11 +69,47 @@ class ButtonsView(discord.ui.View):
 def transcribe_and_cache(message : discord.Message, view_message : discord.Message) :
     #transcription and cache
     output = wt.transcribe()
-    print(output)
     if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
         logger.info("Transcription completed")
     else :
         logger.error("Error adding to cache")
+
+def transcribe_no_cache() :
+    '''Directly transcribes the audio file and sends the result to the user'''
+    global last_transcription
+    last_transcription = wt.transcribe()
+
+@bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
+async def transcribe(interaction : discord.Interaction, message_id : str) :
+    global last_transcription
+    channel = interaction.channel
+    message = await channel.fetch_message(message_id)
+    url = str(message.attachments[0]) if message.attachments else ""
+
+    if url and ".ogg" in url:
+        try:
+            opener = urllib.request.URLopener()
+            opener.addheader("User-Agent", "Mozilla/5.0")
+            opener.retrieve(url, Path(__file__).parent / AUDIO_PATH / AUDIO_FILE_OGG)
+        except Exception as e:
+            logger.error("Error retrieving file: %s", e)
+            traceback.print_exc()
+            await interaction.response.send_message("Internal error", ephemeral=True)
+            return
+        
+        await interaction.response.send_message("Transcribing...", ephemeral=True) #wait msg to avoid timeout
+
+        #transcription
+        t = threading.Thread(target = transcribe_no_cache)
+        t.start()
+        t.join() #wait for thread to finish
+        if last_transcription == "" :
+            await interaction.edit_original_response(content="Error during the transcription")
+        else :
+            await interaction.edit_original_response(content=last_transcription)
+
+    else :
+        await interaction.response.send_message("No audio file found", ephemeral=True)
 
 # DISCORD BOT EVENTS
 @bot.event
@@ -109,6 +147,8 @@ async def on_ready():
             audio_msg = await bot.get_channel(channel_id).fetch_message(audio_msg_id)
             bot.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
     
+    synced = await bot.tree.sync()
+    logger.info(f"Synced {synced} commands")
     await bot.change_presence(activity=discord.Game(name="user audio"))
     logger.info("Bot started!")
 
