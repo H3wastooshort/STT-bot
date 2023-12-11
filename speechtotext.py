@@ -8,6 +8,7 @@ import tracemalloc
 from pathlib import Path
 import json
 import threading
+import asyncio
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 
@@ -72,10 +73,17 @@ def transcribe_and_cache(message : discord.Message, view_message : discord.Messa
     else :
         logger.error("Error adding to cache")
 
-def transcribe_no_cache(message_id : int) :
+async def transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
     '''Directly transcribes the audio file and sends the result to the user'''
     global last_transcription
     last_transcription = wt.transcribe(message_id)
+    if last_transcription == "" :
+        await interaction.edit_original_response(content="Error during the transcription")
+    else :
+        await interaction.edit_original_response(content=last_transcription)
+
+def wrap_transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
+    asyncio.run_coroutine_threadsafe(transcribe_no_cache(message_id, interaction), bot.loop)
 
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
 async def transcribe(interaction : discord.Interaction, message_id : str) :
@@ -99,13 +107,9 @@ async def transcribe(interaction : discord.Interaction, message_id : str) :
         await interaction.response.send_message("Transcribing...", ephemeral=True) #wait msg to avoid timeout
 
         #transcription
-        t = threading.Thread(target = transcribe_no_cache, args=(message.id,))
+        t = threading.Thread(target = wrap_transcribe_no_cache, args=(message.id, interaction))
         t.start()
-        t.join() #wait for thread to finish
-        if last_transcription == "" :
-            await interaction.edit_original_response(content="Error during the transcription")
-        else :
-            await interaction.edit_original_response(content=last_transcription)
+
 
     else :
         await interaction.response.send_message("No audio file found", ephemeral=True)
