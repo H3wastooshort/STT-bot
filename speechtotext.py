@@ -29,7 +29,6 @@ last_transcription = ""
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
     AUDIO_PATH = Path(config["audio_path"])
-    AUDIO_FILE_OGG = config["audio_file"]
     CACHE = Path(config["cache"])
     TOKEN = config["token"]
 

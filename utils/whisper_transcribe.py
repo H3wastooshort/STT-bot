@@ -7,7 +7,6 @@ import os
 with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
     config = yaml.safe_load(file)
     AUDIO_PATH = Path(config["audio_path"])
-    AUDIO_FILE_OGG = config["audio_file"]
 
 def transcribe(message_id : int) :
     #load model
