@@ -8,7 +8,6 @@ import tracemalloc
 from pathlib import Path
 import json
 import threading
-import asyncio
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 
@@ -68,16 +67,16 @@ class ButtonsView(discord.ui.View):
 # UTIL
 def transcribe_and_cache(message : discord.Message, view_message : discord.Message) :
     #transcription and cache
-    output = wt.transcribe()
+    output = wt.transcribe(message.id)
     if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
         logger.info("Transcription completed")
     else :
         logger.error("Error adding to cache")
 
-def transcribe_no_cache() :
+def transcribe_no_cache(message_id : int) :
     '''Directly transcribes the audio file and sends the result to the user'''
     global last_transcription
-    last_transcription = wt.transcribe()
+    last_transcription = wt.transcribe(message_id)
 
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
 async def transcribe(interaction : discord.Interaction, message_id : str) :
@@ -88,9 +87,10 @@ async def transcribe(interaction : discord.Interaction, message_id : str) :
 
     if url and ".ogg" in url:
         try:
+            #download audio file
             opener = urllib.request.URLopener()
             opener.addheader("User-Agent", "Mozilla/5.0")
-            opener.retrieve(url, Path(__file__).parent / AUDIO_PATH / AUDIO_FILE_OGG)
+            opener.retrieve(url, Path(__file__).parent / AUDIO_PATH / f"voice_message_{str(message.id)}.ogg")
         except Exception as e:
             logger.error("Error retrieving file: %s", e)
             traceback.print_exc()
@@ -100,7 +100,7 @@ async def transcribe(interaction : discord.Interaction, message_id : str) :
         await interaction.response.send_message("Transcribing...", ephemeral=True) #wait msg to avoid timeout
 
         #transcription
-        t = threading.Thread(target = transcribe_no_cache)
+        t = threading.Thread(target = transcribe_no_cache, args=(message.id,))
         t.start()
         t.join() #wait for thread to finish
         if last_transcription == "" :
@@ -123,9 +123,10 @@ async def on_message(message: discord.Message):
         logger.info(f"Voice message URL found: {url}")
         view_message = await message.channel.send("", view=ButtonsView(message), reference = message, mention_author=False)
         try:
+            #download audio file
             opener = urllib.request.URLopener()
             opener.addheader("User-Agent", "Mozilla/5.0")
-            opener.retrieve(url, Path(__file__).parent / AUDIO_PATH / AUDIO_FILE_OGG)
+            opener.retrieve(url, Path(__file__).parent / AUDIO_PATH / f"voice_message_{str(message.id)}.ogg")
         except Exception as e:
             logger.error("Error retrieving file: %s", e)
             traceback.print_exc()
