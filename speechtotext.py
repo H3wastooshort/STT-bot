@@ -92,7 +92,7 @@ async def transcribe(interaction : discord.Interaction, message_id : str) :
         await interaction.response.send_message("Transcribing... (do not close this message)", ephemeral=True) #wait msg to avoid timeout
 
         #transcription
-        t = threading.Thread(target = wt.wrap_transcribe_no_cache, args=(message.id, interaction))
+        t = threading.Thread(target = wrap_transcribe_no_cache, args=(message.id, interaction))
         t.start()
 
 
