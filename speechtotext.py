@@ -72,6 +72,7 @@ def transcribe_and_cache(message : discord.Message, view_message : discord.Messa
         logger.info("Transcription completed")
     else :
         logger.error("Error adding to cache")
+    c_handle.remove_old_cache()
 
 async def transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
     '''Directly transcribes the audio file and sends the result to the user'''
