@@ -1,8 +1,12 @@
 import whisper
+import discord
 from pathlib import Path
 import yaml
 import os
 import logging
+import asyncio
+
+from . import cache_handling as c_handle
 
 # Load configuration
 with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
@@ -40,3 +44,24 @@ def transcribe(message_id : int) :
     #clean up
     os.remove(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message_id)}.ogg")
     return result['text']
+
+def transcribe_and_cache(message : discord.Message, view_message : discord.Message) :
+    #transcription and cache
+    output = transcribe(message.id)
+    if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
+        logger.info("Transcription completed")
+    else :
+        logger.error("Error adding to cache")
+    c_handle.remove_old_cache()
+
+async def transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
+    '''Directly transcribes the audio file and sends the result to the user'''
+    global last_transcription
+    last_transcription = transcribe(message_id)
+    if last_transcription == "" :
+        await interaction.edit_original_response(content="Error during the transcription")
+    else :
+        await interaction.edit_original_response(content=last_transcription)
+
+def wrap_transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
+    asyncio.run_coroutine_threadsafe(transcribe_no_cache(message_id, interaction), bot.loop)

@@ -8,7 +8,6 @@ import tracemalloc
 from pathlib import Path
 import json
 import threading
-import asyncio
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 
@@ -65,26 +64,7 @@ class ButtonsView(discord.ui.View):
             await interaction.response.send_message("This message has not been transcribed yet or is too old.", ephemeral=True)
 
 # UTIL
-def transcribe_and_cache(message : discord.Message, view_message : discord.Message) :
-    #transcription and cache
-    output = wt.transcribe(message.id)
-    if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
-        logger.info("Transcription completed")
-    else :
-        logger.error("Error adding to cache")
-    c_handle.remove_old_cache()
 
-async def transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
-    '''Directly transcribes the audio file and sends the result to the user'''
-    global last_transcription
-    last_transcription = wt.transcribe(message_id)
-    if last_transcription == "" :
-        await interaction.edit_original_response(content="Error during the transcription")
-    else :
-        await interaction.edit_original_response(content=last_transcription)
-
-def wrap_transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
-    asyncio.run_coroutine_threadsafe(transcribe_no_cache(message_id, interaction), bot.loop)
 
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
 async def transcribe(interaction : discord.Interaction, message_id : str) :
@@ -105,10 +85,10 @@ async def transcribe(interaction : discord.Interaction, message_id : str) :
             await interaction.response.send_message("Internal error", ephemeral=True)
             return
         
-        await interaction.response.send_message("Transcribing...", ephemeral=True) #wait msg to avoid timeout
+        await interaction.response.send_message("Transcribing... (do not close this message)", ephemeral=True) #wait msg to avoid timeout
 
         #transcription
-        t = threading.Thread(target = wrap_transcribe_no_cache, args=(message.id, interaction))
+        t = threading.Thread(target = wt.wrap_transcribe_no_cache, args=(message.id, interaction))
         t.start()
 
 
@@ -136,7 +116,7 @@ async def on_message(message: discord.Message):
             traceback.print_exc()
 
         #transcription and cache
-        t = threading.Thread(target=transcribe_and_cache, args=(message, view_message))
+        t = threading.Thread(target=wt.transcribe_and_cache, args=(message, view_message))
         t.start()
 
 @bot.event
