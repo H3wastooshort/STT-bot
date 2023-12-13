@@ -21,15 +21,16 @@ logger = logging.getLogger(__name__)
 def cache_lifespan_to_timedelta() :
     duration_type = CACHE_HISTORY_LIFESPAN[-1]
     duration = int(CACHE_HISTORY_LIFESPAN[:-1])
+    
     if duration_type == "d" :
         return datetime.timedelta(days=duration)
-    elif duration_type == "m" :
-        return datetime.timedelta(days=30)
-    elif duration_type == "y" :
-        return datetime.timedelta(days=365)
-    else :
-        logger.warning("Invalid cache history lifespan, using default of 30 days")
-        return datetime.timedelta(days=30)
+    if duration_type == "m" :
+        return datetime.timedelta(days=30*duration)
+    if duration_type == "y" :
+        return datetime.timedelta(days=365*duration)
+    
+    logger.warning("Invalid cache history lifespan, using default of 30 days")
+    return datetime.timedelta(days=30)
     
 cache_timedelta = cache_lifespan_to_timedelta() 
 
