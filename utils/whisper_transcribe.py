@@ -4,7 +4,6 @@ from pathlib import Path
 import yaml
 import os
 import logging
-import asyncio
 
 from . import cache_handling as c_handle
 
@@ -34,7 +33,7 @@ def transcribe(message_id : int) :
 
     #load audio file
     audio = whisper.load_audio(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message_id)}.ogg")
-
+    
     #transcribe audio
     if LANGUAGE == "auto" :
         result = model.transcribe(audio)
@@ -46,8 +45,17 @@ def transcribe(message_id : int) :
     return result['text']
 
 def transcribe_and_cache(message : discord.Message, view_message : discord.Message) :
-    #transcription and cache
-    output = transcribe(message.id)
+    '''Transcribes the audio file and adds the result to the cache, then removes old entries from the cache'''
+
+    try :
+        output = transcribe(message.id)
+    except Exception as e:
+        logger.error("Error during the transcription: %s", e)
+        
+        #clean up
+        os.remove(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message.id)}.ogg")
+        return
+    
     if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
         logger.info("Transcription completed")
     else :
@@ -56,8 +64,18 @@ def transcribe_and_cache(message : discord.Message, view_message : discord.Messa
 
 async def transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
     '''Directly transcribes the audio file and sends the result to the user'''
+
     global last_transcription
-    last_transcription = transcribe(message_id)
+
+    try :
+        last_transcription = transcribe(message_id)
+    except Exception as e:
+        logger.error("Error during the transcription: %s", e)
+        
+        #clean up
+        os.remove(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message_id)}.ogg")
+        return
+
     if last_transcription == "" :
         await interaction.edit_original_response(content="Error during the transcription")
     else :
