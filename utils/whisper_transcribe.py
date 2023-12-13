@@ -9,6 +9,7 @@ with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
     config = yaml.safe_load(file)
     AUDIO_PATH = Path(config["audio_path"])
     MODEL = config["whisper_model"]
+    LANGUAGE = config["language"]
     
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +32,10 @@ def transcribe(message_id : int) :
     audio = whisper.load_audio(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message_id)}.ogg")
 
     #transcribe audio
-    result = model.transcribe(audio)
+    if LANGUAGE == "auto" :
+        result = model.transcribe(audio)
+    else :
+        result = model.transcribe(audio, language="fr")
 
     #clean up
     os.remove(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message_id)}.ogg")
