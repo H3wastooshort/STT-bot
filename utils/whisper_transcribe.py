@@ -62,6 +62,3 @@ async def transcribe_no_cache(message_id : int, interaction : discord.Interactio
         await interaction.edit_original_response(content="Error during the transcription")
     else :
         await interaction.edit_original_response(content=last_transcription)
-
-def wrap_transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
-    asyncio.run_coroutine_threadsafe(transcribe_no_cache(message_id, interaction), bot.loop)

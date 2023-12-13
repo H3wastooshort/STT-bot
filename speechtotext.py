@@ -8,6 +8,7 @@ import tracemalloc
 from pathlib import Path
 import json
 import threading
+import asyncio
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 
@@ -64,6 +65,9 @@ class ButtonsView(discord.ui.View):
             await interaction.response.send_message("This message has not been transcribed yet or is too old.", ephemeral=True)
 
 # UTIL
+
+def wrap_transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
+    asyncio.run_coroutine_threadsafe(wt.transcribe_no_cache(message_id, interaction), bot.loop)
 
 
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
