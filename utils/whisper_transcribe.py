@@ -35,7 +35,7 @@ def transcribe(message_id : int) :
     if LANGUAGE == "auto" :
         result = model.transcribe(audio)
     else :
-        result = model.transcribe(audio, language="fr")
+        result = model.transcribe(audio, language=LANGUAGE)
 
     #clean up
     os.remove(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message_id)}.ogg")
