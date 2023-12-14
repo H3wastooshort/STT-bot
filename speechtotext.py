@@ -8,7 +8,6 @@ import tracemalloc
 from pathlib import Path
 import json
 import threading
-import asyncio
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 
@@ -132,8 +131,9 @@ async def on_ready():
             audio_msg = await bot.get_channel(channel_id).fetch_message(audio_msg_id)
             bot.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
     
-    synced = await bot.tree.sync()    
+    synced = await bot.tree.sync() #syncs the slash commands
     logger.info(f"Synced {synced} commands")
+    
     await bot.change_presence(activity=discord.Game(name="user audio"))
     logger.info("Bot started!")
 
