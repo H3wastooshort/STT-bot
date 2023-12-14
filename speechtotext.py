@@ -23,9 +23,6 @@ logger = logging.getLogger(__name__)
 # Start tracing memory allocations
 tracemalloc.start()
 
-#Global variable
-last_transcription = ""
-
 # Load configuration
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
@@ -67,7 +64,8 @@ class ButtonsView(discord.ui.View):
 # UTIL
 
 def wrap_transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
-    asyncio.run_coroutine_threadsafe(wt.transcribe_no_cache(message_id, interaction), bot.loop)
+    #starts a new thread to avoid blocking the main thread
+    bot.loop.create_task(wt.transcribe_no_cache(message_id, interaction))
 
 
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
@@ -92,9 +90,7 @@ async def transcribe(interaction : discord.Interaction, message_id : str) :
         await interaction.response.send_message("Transcribing... (do not close this message)", ephemeral=True) #wait msg to avoid timeout
 
         #transcription
-        t = threading.Thread(target = wrap_transcribe_no_cache, args=(message.id, interaction))
-        t.start()
-
+        await wt.transcribe_no_cache(message.id, interaction)
 
     else :
         await interaction.response.send_message("No audio file found", ephemeral=True)
@@ -136,7 +132,7 @@ async def on_ready():
             audio_msg = await bot.get_channel(channel_id).fetch_message(audio_msg_id)
             bot.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
     
-    synced = await bot.tree.sync()
+    synced = await bot.tree.sync()    
     logger.info(f"Synced {synced} commands")
     await bot.change_presence(activity=discord.Game(name="user audio"))
     logger.info("Bot started!")
