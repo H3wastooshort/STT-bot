@@ -65,24 +65,25 @@ def transcribe_and_cache(message : discord.Message, view_message : discord.Messa
         logger.error("Error adding to cache")
     c_handle.remove_old_cache()
 
+    if FIRST_MODEL != SECOND_MODEL :
     #SECOND PASS
-    logger.info("Starting second pass transcription")
+        logger.info("Starting second pass transcription")
 
-    try :
-        output = transcribe(message.id, SECOND_MODEL)
-    except Exception as e:
-        logger.error("Error during the transcription: %s", e)
+        try :
+            output = transcribe(message.id, SECOND_MODEL)
+        except Exception as e:
+            logger.error("Error during the transcription: %s", e)
+            
+            #clean up if error
+            os.remove(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message.id)}.ogg")
+            return
         
-        #clean up if error
-        os.remove(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message.id)}.ogg")
-        return
-    
-    #cache
-    if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
-        logger.info("Transcription completed")
-    else :
-        logger.error("Error adding to cache")
-    c_handle.remove_old_cache()
+        #cache
+        if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
+            logger.info("Transcription completed")
+        else :
+            logger.error("Error adding to cache")
+        c_handle.remove_old_cache()
 
     #clean up
     os.remove(Path(__file__).parent.parent / AUDIO_PATH / f"voice_message_{str(message.id)}.ogg")
