@@ -58,7 +58,7 @@ class ButtonsView(discord.ui.View):
                     logger.error("Error sending message: %s", e)
                     await interaction.response.send_message("Error during the transcription", ephemeral=True)
         except :
-            await interaction.response.send_message("This message has not been transcribed yet or is too old.", ephemeral=True)
+            await interaction.response.send_message("This message has not been transcribed yet. Wait or use `/transcribe` instead", ephemeral=True)
 
 # UTIL
 
@@ -128,8 +128,11 @@ async def on_ready():
             audio_msg_id = int(key)
             view_msg_id = int(cache[key]["view_id"])
             channel_id = int(cache[key]["channel_id"])
-            audio_msg = await bot.get_channel(channel_id).fetch_message(audio_msg_id)
-            bot.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
+            try : #bot might not get access to the channel anymore
+                audio_msg = await bot.get_channel(channel_id).fetch_message(audio_msg_id)
+                bot.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
+            except :
+                pass
     
     synced = await bot.tree.sync() #syncs the slash commands
     logger.info(f"Synced {synced} commands")
