@@ -32,6 +32,7 @@ You will first need to set up a new Discord application on the [Discord develope
 - Create a new application and fill in the general information.
 - In the `Bot` category, click `Reset Token` to generate it. **DO NOT FORGET TO SAVE IT !** Then toggle on everything under `Priviledged Gateway Intents`. <br>
 - In the `OAuth2` category, select the `bot` scope and give the bot these permissions :
+  - Read Messages/View Channels
   - Send Messages
   - Read Message History
   - Use Slash Commands  
