@@ -2,7 +2,7 @@ token: <YOUR TOKEN HERE>
 audio_path: transcription
 cache: cache.json
 #d : days, m : months, y : years
-cache_history_lifespan: 1d
+cache_history_lifespan: 1m
 
 #Models : tiny, base, small, medium or large. The small model seems to be the best trade-off between accuracy and transcription time.
 
