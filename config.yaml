@@ -1,0 +1,19 @@
+token: <YOUR TOKEN HERE>
+audio_path: transcription
+cache: cache.json
+#d : days, m : months, y : years
+cache_history_lifespan: 1d
+
+#Models : tiny, base, small, medium or large. The small model seems to be the best trade-off between accuracy and transcription time.
+
+#When a voice message is sent, at first the smaller model will be used for faster transcription time.
+#Once this is done, the larger one will be used for better accuracy.
+#To only transcribe it once, put the same model for the first and second pass.
+#The slash command will use the smaller model.
+
+#the model used for the first pass.
+whisper_model_first_pass: small
+ #the model used for the second pass.
+whisper_model_second_pass: medium
+#auto by default. e.g : en, fr... check https://github.com/openai/whisper/blob/main/whisper/tokenizer.py for a list of available languages.
+language: auto
