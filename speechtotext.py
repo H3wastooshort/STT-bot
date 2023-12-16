@@ -8,12 +8,10 @@ import tracemalloc
 from pathlib import Path
 import json
 import threading
+import gc
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 
-
-class SpeechToText(commands.Cog):
-    "Commands for speech to text"
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -29,14 +27,17 @@ with open("config.yaml", "r") as file:
     CACHE = Path(config["cache"])
     TOKEN = config["token"]
 
-# Discord Bot Setup
-bot = commands.Bot(command_prefix=".", description="Speech to text", case_insensitive=1, intents=discord.Intents.all())
-
 # INTERACTION VIEW
 class ButtonsView(discord.ui.View):
     def __init__(self, message : discord.Message = None):
         super().__init__(timeout=None)
         self.message = message
+
+    def __str__(self):
+        return f"ButtonsView(message={self.message.id})"
+    
+    def __del__(self):
+        logger.info(f"Deleting view {self}")
 
     @discord.ui.button(label='Show transcription', custom_id="buttons", style=discord.ButtonStyle.primary, emoji="✍️")
     async def button_callback(self, interaction : discord.Interaction, button):
@@ -62,14 +63,73 @@ class ButtonsView(discord.ui.View):
 
 # UTIL
 
-def wrap_transcribe_no_cache(message_id : int, interaction : discord.Interaction) :
-    #starts a new thread to avoid blocking the main thread
-    bot.loop.create_task(wt.transcribe_no_cache(message_id, interaction))
+def remove_view(message_id : int) :
+    '''Returns the view associated with the given message id'''
 
+    for view in gc.get_objects():
+        if isinstance(view, ButtonsView) and view.message.id == message_id:
+            view.stop()
+            del view
+            gc.collect()
+            return True
+        
+    return False
 
+class SpeechToText(commands.Bot):
+
+    # DISCORD BOT EVENTS
+    async def on_message(self, message: discord.Message):
+        if message.author == self.user:
+            return
+
+        #check if message is a voice message
+        url = str(message.attachments[0]) if message.attachments else ""
+        if url and ".ogg" in url:
+            logger.info(f"Voice message URL found: {url}")
+            view_message = await message.channel.send("", view=ButtonsView(message), reference = message, mention_author=False)
+            try:
+                #download audio file
+                opener = urllib.request.URLopener()
+                opener.addheader("User-Agent", "Mozilla/5.0")
+                opener.retrieve(url, Path(__file__).parent / AUDIO_PATH / f"voice_message_{str(message.id)}.ogg")
+            except Exception as e:
+                logger.error("Error retrieving file: %s", e)
+                traceback.print_exc()
+
+            #transcription and cache
+            t = threading.Thread(target=wt.transcribe_and_cache, args=(message, view_message))
+            t.start()
+            
+
+    async def on_ready(self):
+        #restores previously created views
+        cache = c_handle.get_all_cache()
+        if cache is not None:
+            logger.info("Restoring views")
+            for key in cache :
+                audio_msg_id = int(key)
+                view_msg_id = int(cache[key]["view_id"])
+                channel_id = int(cache[key]["channel_id"])
+                try : #bot might not get access to the channel anymore
+                    audio_msg = await self.get_channel(channel_id).fetch_message(audio_msg_id)
+                    self.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
+                except :
+                    pass
+        
+        synced = await self.tree.sync() #syncs the slash commands
+        logger.info(f"Synced {synced} commands")
+        
+        await self.change_presence(activity=discord.Game(name="user audio"))
+        logger.info("Bot started!")
+
+# BOT
+bot = SpeechToText(command_prefix=".", intents=discord.Intents.all())
+
+# SLASH COMMAND
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
 async def transcribe(interaction : discord.Interaction, message_id : str) :
-    global last_transcription
+    '''Transcribes a specified audio message in the channel'''
+
     channel = interaction.channel
     message = await channel.fetch_message(message_id)
     url = str(message.attachments[0]) if message.attachments else ""
@@ -93,54 +153,5 @@ async def transcribe(interaction : discord.Interaction, message_id : str) :
 
     else :
         await interaction.response.send_message("No audio file found", ephemeral=True)
-
-# DISCORD BOT EVENTS
-@bot.event
-async def on_message(message: discord.Message):
-    if message.author == bot.user:
-        return
-
-    #check if message is a voice message
-    url = str(message.attachments[0]) if message.attachments else ""
-    if url and ".ogg" in url:
-        logger.info(f"Voice message URL found: {url}")
-        view_message = await message.channel.send("", view=ButtonsView(message), reference = message, mention_author=False)
-        try:
-            #download audio file
-            opener = urllib.request.URLopener()
-            opener.addheader("User-Agent", "Mozilla/5.0")
-            opener.retrieve(url, Path(__file__).parent / AUDIO_PATH / f"voice_message_{str(message.id)}.ogg")
-        except Exception as e:
-            logger.error("Error retrieving file: %s", e)
-            traceback.print_exc()
-
-        #transcription and cache
-        t = threading.Thread(target=wt.transcribe_and_cache, args=(message, view_message))
-        t.start()
-
-@bot.event
-async def on_ready():    
-    #restores previously created views
-    cache = c_handle.get_all_cache()
-    if cache is not None:
-        logger.info("Restoring views")
-        for key in cache :
-            audio_msg_id = int(key)
-            view_msg_id = int(cache[key]["view_id"])
-            channel_id = int(cache[key]["channel_id"])
-            try : #bot might not get access to the channel anymore
-                audio_msg = await bot.get_channel(channel_id).fetch_message(audio_msg_id)
-                bot.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
-            except :
-                pass
-    
-    synced = await bot.tree.sync() #syncs the slash commands
-    logger.info(f"Synced {synced} commands")
-    
-    await bot.change_presence(activity=discord.Game(name="user audio"))
-    logger.info("Bot started!")
-
-async def setup():
-    bot.add_cog(SpeechToText())
 
 bot.run(TOKEN)
