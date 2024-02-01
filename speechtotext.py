@@ -11,7 +11,7 @@ import threading
 import gc
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
-
+from utils.buttons_view import ButtonsView
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -27,58 +27,11 @@ with open("config.yaml", "r") as file:
     CACHE = Path(config["cache"])
     TOKEN = config["token"]
 
-# INTERACTION VIEW
-class ButtonsView(discord.ui.View):
-    def __init__(self, message : discord.Message = None):
-        super().__init__(timeout=None)
-        self.message = message
-
-    def __str__(self):
-        return f"ButtonsView(message={self.message.id})"
-    
-    def __del__(self):
-        logger.info(f"Deleting view {self}")
-
-    @discord.ui.button(label='Show transcription', custom_id="buttons", style=discord.ButtonStyle.primary, emoji="✍️")
-    async def button_callback(self, interaction : discord.Interaction, button):
-        if self.message is None:
-            date = interaction.message.created_at
-            history = interaction.channel.history(before=date, limit=1)
-            async for message in history:
-                self.message = message
-
-        #open cache
-        try :
-            with open(Path(__file__).parent / AUDIO_PATH / CACHE, "r") as file:
-                cache = json.load(file)
-                message = cache[str(self.message.id)]
-                text = f"**{message['author']}** said:\n ```{message['content']}```"
-                try :
-                    await interaction.response.send_message(text, ephemeral=True)
-                except discord.errors.HTTPException as e:
-                    logger.error("Error sending message: %s", e)
-                    await interaction.response.send_message("Error during the transcription", ephemeral=True)
-        except :
-            await interaction.response.send_message("This message has not been transcribed yet. Wait or use `/transcribe` instead", ephemeral=True)
-
-# UTIL
-
-def remove_view(message_id : int) :
-    '''Returns the view associated with the given message id'''
-
-    for view in gc.get_objects():
-        if isinstance(view, ButtonsView) and view.message.id == message_id:
-            view.stop()
-            del view
-            gc.collect()
-            return True
-        
-    return False
-
 class SpeechToText(commands.Bot):
 
     # DISCORD BOT EVENTS
     async def on_message(self, message: discord.Message):
+        gc.collect()
         if message.author == self.user:
             return
 
@@ -86,7 +39,9 @@ class SpeechToText(commands.Bot):
         url = str(message.attachments[0]) if message.attachments else ""
         if url and ".ogg" in url:
             logger.info(f"Voice message URL found: {url}")
-            view_message = await message.channel.send("", view=ButtonsView(message), reference = message, mention_author=False)
+            view = ButtonsView(message)
+            view_message = await message.channel.send("", view=view, reference=message, mention_author=False)
+
             try:
                 #download audio file
                 opener = urllib.request.URLopener()
@@ -99,11 +54,27 @@ class SpeechToText(commands.Bot):
             #transcription and cache
             t = threading.Thread(target=wt.transcribe_and_cache, args=(message, view_message))
             t.start()
-            
+
+    async def on_message_delete(self, message: discord.Message):
+        #check if message is a voice message
+        url = str(message.attachments[0]) if message.attachments else ""
+        if url and ".ogg" in url:
+            logger.info(f"Voice message URL found: {url}")
+            #remove associated view
+
+            cache_r = json.load(open(Path(__file__).parent / AUDIO_PATH / CACHE, "r"))
+            try :
+                view_msg_id = int(cache_r[str(message.id)]["view_id"])
+                view_message = await message.channel.fetch_message(view_msg_id)
+                await view_message.delete()
+                c_handle.remove_from_cache(message.id)
+
+            except :
+                logger.warning("Cache entry not found for message %s. Either it has already been deleted or the transcription is not finished yet", message.id)
 
     async def on_ready(self):
         #restores previously created views
-        cache = c_handle.get_all_cache()
+        """cache = c_handle.get_all_cache()
         if cache is not None:
             logger.info("Restoring views")
             for key in cache :
@@ -114,7 +85,7 @@ class SpeechToText(commands.Bot):
                     audio_msg = await self.get_channel(channel_id).fetch_message(audio_msg_id)
                     self.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
                 except :
-                    pass
+                    pass"""
         
         synced = await self.tree.sync() #syncs the slash commands
         logger.info(f"Synced {synced} commands")
@@ -127,11 +98,11 @@ bot = SpeechToText(command_prefix=".", intents=discord.Intents.all())
 
 # SLASH COMMAND
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
-async def transcribe(interaction : discord.Interaction, message_id : str) :
+async def transcribe(interaction : discord.Interaction, message_id : int) :
     '''Transcribes a specified audio message in the channel'''
 
     channel = interaction.channel
-    message = await channel.fetch_message(message_id)
+    message = await channel.fetch_message(int(message_id))
     url = str(message.attachments[0]) if message.attachments else ""
 
     if url and ".ogg" in url:
