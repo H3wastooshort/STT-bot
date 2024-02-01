@@ -61,21 +61,6 @@ def add_to_cache(audio_msg_id : int, view_msg_id : int, channel_id : int, author
     
     return True
 
-def get_all_cache() :
-    '''Returns the entire cache as a dictionary'''
-
-    try :
-        #open file
-        with open(Path(__file__).parent.parent / AUDIO_PATH / CACHE, "r") as file:
-            cache = json.load(file)
-            file.close()
-
-    except Exception as e:
-        logging.error("Error reading cache: %s", e)
-        return None
-    
-    return cache
-
 def remove_from_cache(audio_msg_id : int) :
     '''Removes a specific entry from the cache'''
 
