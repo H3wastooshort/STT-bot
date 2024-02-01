@@ -73,20 +73,7 @@ class SpeechToText(commands.Bot):
                 logger.warning("Cache entry not found for message %s. Either it has already been deleted or the transcription is not finished yet", message.id)
 
     async def on_ready(self):
-        #restores previously created views
-        """cache = c_handle.get_all_cache()
-        if cache is not None:
-            logger.info("Restoring views")
-            for key in cache :
-                audio_msg_id = int(key)
-                view_msg_id = int(cache[key]["view_id"])
-                channel_id = int(cache[key]["channel_id"])
-                try : #bot might not get access to the channel anymore
-                    audio_msg = await self.get_channel(channel_id).fetch_message(audio_msg_id)
-                    self.add_view(ButtonsView(audio_msg), message_id=view_msg_id)
-                except :
-                    pass"""
-        
+        #sync slash commands
         synced = await self.tree.sync() #syncs the slash commands
         logger.info(f"Synced {synced} commands")
         
@@ -98,7 +85,7 @@ bot = SpeechToText(command_prefix=".", intents=discord.Intents.all())
 
 # SLASH COMMAND
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
-async def transcribe(interaction : discord.Interaction, message_id : int) :
+async def transcribe(interaction : discord.Interaction, message_id : str) :
     '''Transcribes a specified audio message in the channel'''
 
     channel = interaction.channel
