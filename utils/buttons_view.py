@@ -14,12 +14,8 @@ logger = logging.getLogger(__name__)
 with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
     config = yaml.safe_load(file)
     AUDIO_PATH = Path(config["audio_path"])
-    
     CACHE = Path(config["cache"])
     TIMEOUT = cache_handling.cache_lifespan_to_timedelta().total_seconds()
-    print(TIMEOUT)
-    TIMEOUT = 60
-
 
 class ButtonsView(discord.ui.View):
     def __init__(self, message : discord.Message = None):
@@ -51,11 +47,17 @@ class ButtonsView(discord.ui.View):
             with open(Path(__file__).parent.parent / AUDIO_PATH / CACHE, "r") as file:
                 cache = json.load(file)
                 message = cache[str(self.message.id)]
-                text = f"**{message['author']}** said:\n ```{message['content']}```"
-                try :
-                    await interaction.response.send_message(text, ephemeral=True)
-                except discord.errors.HTTPException as e:
-                    logger.error("Error sending message: %s", e)
-                    await interaction.response.send_message("Error during the transcription", ephemeral=True)
+                author = message["author"]
+                content = message["content"]
+                if content == "" :
+                    text = f"Couldn't understand the audio from user **{author}**"
+                elif content == "TRANSCRIPTION IN PROGRESS" :
+                    text = "This message has not been transcribed yet. Wait or use `/transcribe` instead"
+                else :
+                    text = f"**{author}** said:\n ```{content}```"
+                file.close()
+
+                await interaction.response.send_message(text, ephemeral=True)
         except :
-            await interaction.response.send_message("This message has not been transcribed yet. Wait or use `/transcribe` instead", ephemeral=True)
+            logger.error("Error during button callback")
+            await interaction.response.send_message("Error during the transcription", ephemeral=True)

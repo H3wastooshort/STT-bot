@@ -30,8 +30,7 @@ with open("config.yaml", "r") as file:
 class SpeechToText(commands.Bot):
 
     # DISCORD BOT EVENTS
-    async def on_message(self, message: discord.Message):
-        gc.collect()
+    async def on_message(self, message: discord.Message):        
         if message.author == self.user:
             return
 
@@ -39,6 +38,9 @@ class SpeechToText(commands.Bot):
         url = str(message.attachments[0]) if message.attachments else ""
         if url and ".ogg" in url:
             logger.info(f"Voice message URL found: {url}")
+
+            gc.collect() #collect garbage to avoid memory leaks
+
             view = ButtonsView(message)
             view_message = await message.channel.send("", view=view, reference=message, mention_author=False)
 
@@ -52,7 +54,7 @@ class SpeechToText(commands.Bot):
                 traceback.print_exc()
             
             #add to cache with empty content
-            c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, "")
+            c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, "TRANSCRIPTION IN PROGRESS")
 
             #transcription and cache
             t = threading.Thread(target=wt.transcribe_and_cache, args=(message, view_message))

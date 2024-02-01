@@ -59,6 +59,7 @@ def transcribe_and_cache(message : discord.Message, view_message : discord.Messa
         return
     
     #cache
+    c_handle.remove_from_cache(message.id)
     if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, output) :
         logger.info("Transcription completed")
     else :
