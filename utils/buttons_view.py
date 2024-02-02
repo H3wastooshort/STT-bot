@@ -26,16 +26,17 @@ class ButtonsView(discord.ui.View):
         return f"ButtonsView(message={self.message.id})"
     
     def __del__(self):
-        #delete associated view
-        cache_handling.remove_from_cache(self.message.id)
         logger.info(f"View {self} deleted")
 
     async def on_timeout(self) -> None:
         logger.info(f"View {self} timed out")
         return await super().on_timeout()
 
+    # Button callback
     @discord.ui.button(label='Show transcription', custom_id="buttons", style=discord.ButtonStyle.primary, emoji="✍️")
     async def button_callback(self, interaction : discord.Interaction, button):
+
+        #get message if not set
         if self.message is None:
             date = interaction.message.created_at
             history = interaction.channel.history(before=date, limit=1)
@@ -49,13 +50,14 @@ class ButtonsView(discord.ui.View):
                 message = cache[str(self.message.id)]
                 author = message["author"]
                 content = message["content"]
+                file.close()
+
                 if content == "" :
                     text = f"Couldn't understand the audio from user **{author}**"
                 elif content == "TRANSCRIPTION IN PROGRESS" :
                     text = "This message has not been transcribed yet. Wait or use `/transcribe` instead"
                 else :
                     text = f"**{author}** said:\n ```{content}```"
-                file.close()
 
                 await interaction.response.send_message(text, ephemeral=True)
         except :

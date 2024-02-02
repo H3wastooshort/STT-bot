@@ -30,6 +30,7 @@ with open("config.yaml", "r") as file:
 class SpeechToText(commands.Bot):
 
     # DISCORD BOT EVENTS
+
     async def on_message(self, message: discord.Message):        
         if message.author == self.user:
             return
@@ -39,8 +40,9 @@ class SpeechToText(commands.Bot):
         if url and ".ogg" in url:
             logger.info(f"Voice message URL found: {url}")
 
-            gc.collect() #collect garbage to avoid memory leaks
+            gc.collect() #collect garbage to avoid memory leaks ; removes timed out views
 
+            #send buttons view
             view = ButtonsView(message)
             view_message = await message.channel.send("", view=view, reference=message, mention_author=False)
 
@@ -60,12 +62,12 @@ class SpeechToText(commands.Bot):
             t = threading.Thread(target=wt.transcribe_and_cache, args=(message, view_message))
             t.start()
 
+
     async def on_message_delete(self, message: discord.Message):
         #check if message is a voice message
         url = str(message.attachments[0]) if message.attachments else ""
         if url and ".ogg" in url:
             logger.info(f"Voice message URL found: {url}")
-            #remove associated view
 
             cache_r = json.load(open(Path(__file__).parent / AUDIO_PATH / CACHE, "r"))
             try :
@@ -76,6 +78,7 @@ class SpeechToText(commands.Bot):
 
             except :
                 logger.warning("Cache entry not found for message %s. Either it has already been deleted or the transcription is not finished yet", message.id)
+
 
     async def on_ready(self):
         #sync slash commands
@@ -91,7 +94,7 @@ bot = SpeechToText(command_prefix=".", intents=discord.Intents.all())
 # SLASH COMMAND
 @bot.tree.command(name="transcribe", description="Transcribes a specified audio message in the channel")
 async def transcribe(interaction : discord.Interaction, message_id : str) :
-    '''Transcribes a specified audio message in the channel'''
+    '''Transcribes a specified audio message in the channel, without saving the result to the cache'''
 
     channel = interaction.channel
     message = await channel.fetch_message(int(message_id))
