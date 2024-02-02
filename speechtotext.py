@@ -54,7 +54,7 @@ class SpeechToText(commands.Bot):
                 traceback.print_exc()
             
             #add to cache with empty content
-            c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, message.created_at, "TRANSCRIPTION IN PROGRESS")
+            c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, "TRANSCRIPTION IN PROGRESS")
 
             #transcription and cache
             t = threading.Thread(target=wt.transcribe_and_cache, args=(message, view_message))
