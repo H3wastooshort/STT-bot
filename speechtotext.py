@@ -9,6 +9,7 @@ from pathlib import Path
 import json
 import threading
 import gc
+import os
 
 from utils import whisper_transcribe as wt, cache_handling as c_handle
 from utils.buttons_view import ButtonsView
@@ -81,6 +82,10 @@ class SpeechToText(commands.Bot):
 
 
     async def on_ready(self):
+        #create audio folder if it doesn't exist
+        if not os.path.exists(AUDIO_PATH):
+            os.makedirs(AUDIO_PATH)
+
         #sync slash commands
         synced = await self.tree.sync() #syncs the slash commands
         logger.info(f"Synced {synced} commands")
