@@ -50,6 +50,7 @@ class ButtonsView(discord.ui.View):
                 message = cache[str(self.message.id)]
                 author = message["author"]
                 content = message["content"]
+                first_pass = message["first_pass"]
                 file.close()
 
                 if content == "" :
@@ -57,7 +58,9 @@ class ButtonsView(discord.ui.View):
                 elif content == "TRANSCRIPTION IN PROGRESS" :
                     text = "This message has not been transcribed yet. Wait or use `/transcribe` instead"
                 else :
-                    text = f"**{author}** said:\n ```{content}```"
+                    text = f"**{author}** said:```{content}```"
+                    if first_pass :
+                        text += "\n> This transcription may not be accurate and is still being processed."
 
                 await interaction.response.send_message(text, ephemeral=True)
         except :

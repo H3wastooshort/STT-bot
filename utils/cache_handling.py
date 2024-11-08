@@ -32,7 +32,7 @@ def cache_lifespan_to_timedelta() :
     logger.warning("Invalid cache history lifespan, using default of 30 days")
     return datetime.timedelta(days=30)
     
-def add_to_cache(audio_msg_id : int, view_msg_id : int, channel_id : int, author : discord.Member, content : str) :
+def add_to_cache(audio_msg_id : int, view_msg_id : int, channel_id : int, author : discord.Member, content : str, first_pass: bool) :
     '''Adds a new entry to the cache'''
 
     try :
@@ -41,14 +41,25 @@ def add_to_cache(audio_msg_id : int, view_msg_id : int, channel_id : int, author
             #create file
             with open(Path(__file__).parent.parent / AUDIO_PATH / CACHE, "w") as file :
                 data = {}
-                data[audio_msg_id] = {"channel_id" : int(channel_id), "view_id" : view_msg_id, "author" : str(author), "content" : content}
+                data[audio_msg_id] = {
+                    "channel_id": int(channel_id),
+                    "view_id": view_msg_id,
+                    "author": str(author),
+                    "content": content,
+                    "first_pass": first_pass
+                    }
                 json.dump(data, file)
                 file.close()
         else : #if cache exists, add new entry
             #open file
             with open(Path(__file__).parent.parent / AUDIO_PATH / CACHE, "r") as file:
                 cache = json.load(file)
-                cache[audio_msg_id] = {"channel_id" : int(channel_id), "view_id" : view_msg_id, "author" : str(author), "content" : content}
+                cache[audio_msg_id] = {"channel_id": int(channel_id),
+                                       "view_id": view_msg_id,
+                                       "author": str(author),
+                                       "content": content,
+                                       "first_pass": first_pass
+                                       }
                 file.close()
             #save file
             with open(Path(__file__).parent.parent / AUDIO_PATH / CACHE, "w") as file:

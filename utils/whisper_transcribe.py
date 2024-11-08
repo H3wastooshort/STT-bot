@@ -60,7 +60,7 @@ def transcribe_and_cache(message : discord.Message, view_message : discord.Messa
     
     #cache
     c_handle.remove_from_cache(message.id)
-    if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, output) :
+    if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, output, FIRST_MODEL!=SECOND_MODEL) :
         logger.info("Transcription completed")
     else :
         logger.error("Error adding to cache")
@@ -80,7 +80,7 @@ def transcribe_and_cache(message : discord.Message, view_message : discord.Messa
         
         #cache
         c_handle.remove_from_cache(message.id)
-        if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, output) :
+        if c_handle.add_to_cache(message.id, view_message.id, message.channel.id, message.author, output, False) :
             logger.info("Transcription completed")
         else :
             logger.error("Error adding to cache")
