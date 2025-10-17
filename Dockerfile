@@ -20,6 +20,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 FROM python:3.13-slim
 WORKDIR /app
 
+#install ffmpeg
+RUN apt update
+RUN apt install ffmpeg
+
 #copy python dependencies
 COPY --from=builder /app/.venv /app/.venv
 #copy application
