@@ -58,7 +58,7 @@ class ButtonsView(discord.ui.View):
                     if first_pass :
                         text += "\n> This transcription may not be accurate and is still being processed."
                     else:
-                        interaction.response.send_message(text, ephemeral=False)
+                        await interaction.response.send_message(text, ephemeral=False)
                         return
                 await interaction.response.send_message(text, ephemeral=True)
 
