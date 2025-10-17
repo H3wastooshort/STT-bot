@@ -23,6 +23,8 @@ WORKDIR /app
 #install ffmpeg
 RUN apt update
 RUN apt install ffmpeg -y
+RUN apt clean && \
+  rm -rf /var/lib/apt/lists/*
 
 #copy python dependencies
 COPY --from=builder /app/.venv /app/.venv
