@@ -24,15 +24,19 @@ tracemalloc.start()
 # Load configuration
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
-    AUDIO_PATH = Path(config["audio_path"])
-    CACHE = Path(config["cache"])
-    TOKEN = config["token"]
+    AUDIO_PATH = Path(config.get("audio_path",None) or os.getenv("STTB_AUDIO_PATH","/cache/audio")
+    CACHE = Path(config.get("cache",None) or os.getenv("STTB_CACHE_PATH","/cache/text")
+    TOKEN = config.get("token",None) or os.getenv("STTB_TOKEN",None)
+
+if not TOKEN:
+    logger.critical("Missing bot token!")
+    quit()
 
 class SpeechToText(commands.Bot):
 
     # DISCORD BOT EVENTS
 
-    async def on_message(self, message: discord.Message):        
+    async def on_message(self, message: discord.Message):
         if message.author == self.user:
             return
 
