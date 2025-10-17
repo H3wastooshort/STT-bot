@@ -13,7 +13,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 #install packages into venv
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --index-url=https://download.pytorch.org/whl/cpu --extra-index-url=https://pypi.org/simple --no-cache-dir -r requirements.txt && pip uninstall triton -y
 
 
 ##build final image

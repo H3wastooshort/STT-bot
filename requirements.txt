@@ -3,8 +3,6 @@ discord.py~=2.6.4
 PyYAML~=6.0.3
 urllib3~=2.5.0
 
---index-url=https://download.pytorch.org/whl/cpu
---extra-index-url=https://pypi.org/simple
 torch~=2.9.0
 numba~=0.62.1
 numpy~=2.3.4
