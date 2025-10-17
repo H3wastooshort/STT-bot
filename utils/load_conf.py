@@ -1,3 +1,4 @@
+from pathlib import Path
 # Load configuration
 with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
     config = yaml.safe_load(file)
