@@ -3,13 +3,18 @@ FROM python:3.13-slim AS builder
 
 WORKDIR /app
 
+#install git for pip
 RUN apt update
 RUN apt install git -y
 
-#install packages into user folder
+#make venv
+ENV VIRTUAL_ENV=/app/.venv
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+#install packages into venv
 COPY requirements.txt ./
-RUN python -m venv /app/.venv
-RUN source /app/.venv/bin/activate && pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 
 ##build final image
@@ -18,6 +23,11 @@ FROM python:3.13-slim
 #copy python dependencies
 COPY --from=builder /app/.venv /app/.venv
 #copy application
-COPY utils speechtotext.py docker-entrypoint.sh .
+COPY utils speechtotext.py ./
 
-CMD [ "./docker-entrypoint.sh" ]
+#set venv
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+#run bot
+CMD . /app/.venv/bin/activate && exec python speechtotext.py
