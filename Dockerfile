@@ -2,7 +2,7 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-RUN apk add git
+RUN apt install git
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
