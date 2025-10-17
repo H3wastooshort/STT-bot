@@ -1,6 +1,5 @@
 ##install pip packages
 FROM python:3.13-slim AS builder
-
 WORKDIR /app
 
 #install git for pip
@@ -19,15 +18,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 ##build final image
 FROM python:3.13-slim
+WORKDIR /app
 
 #copy python dependencies
 COPY --from=builder /app/.venv /app/.venv
 #copy application
-COPY utils speechtotext.py ./
+COPY utils/ speechtotext.py ./
 
 #set venv
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 #run bot
-CMD . /app/.venv/bin/activate && exec python speechtotext.py
+SHELL ["/bin/sh", "-c"]
+CMD . $VIRTUAL_ENV/bin/activate && exec python speechtotext.py
