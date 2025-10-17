@@ -1,6 +1,6 @@
 discord
 discord.py
-openai-whisper
+openai-whisper @ git+https://github.com/openai/whisper.git@v20250625
 PyYAML
 urllib3
 
