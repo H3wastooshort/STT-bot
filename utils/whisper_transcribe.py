@@ -8,17 +8,11 @@ import asyncio
 
 from . import cache_handling as c_handle
 
-# Load configuration
-with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-    AUDIO_PATH = Path(config["audio_path"])
-    FIRST_MODEL = config["whisper_model_first_pass"]
-    SECOND_MODEL = config["whisper_model_second_pass"]
-    LANGUAGE = config["language"]
-    
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+from .load_conf import *
 
 def transcribe(message_id : int, model : str = FIRST_MODEL) :
     #load model

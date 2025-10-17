@@ -6,16 +6,11 @@ import logging
 import discord
 import datetime
 
-# Load configuration
-with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-    AUDIO_PATH = Path(config["audio_path"])
-    CACHE = Path(config["cache"])
-    CACHE_HISTORY_LIFESPAN = config["cache_history_lifespan"]
-
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+from .load_conf import *
 
 #convert cache history lifespan to timedelta
 def cache_lifespan_to_timedelta() :

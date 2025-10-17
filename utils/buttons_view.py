@@ -10,12 +10,7 @@ from . import cache_handling
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load configuration
-with open(Path(__file__).parent.parent / "config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-    AUDIO_PATH = Path(config["audio_path"])
-    CACHE = Path(config["cache"])
-    TIMEOUT = cache_handling.cache_lifespan_to_timedelta().total_seconds()
+from .load_conf import *
 
 class ButtonsView(discord.ui.View):
     def __init__(self, message : discord.Message = None):
