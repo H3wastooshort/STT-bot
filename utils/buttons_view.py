@@ -57,9 +57,8 @@ class ButtonsView(discord.ui.View):
                     text = f"**{author}** said:```{content}```"
                     if first_pass :
                         text += "\n> This transcription may not be accurate and is still being processed."
-                    else:
-                        await interaction.response.send_message(text, ephemeral=False)
-                        return
+                    await interaction.response.send_message(text, ephemeral=False)
+                    return
                 await interaction.response.send_message(text, ephemeral=True)
 
         except :
