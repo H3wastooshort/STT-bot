@@ -57,8 +57,11 @@ class ButtonsView(discord.ui.View):
                     text = f"**{author}** said:```{content}```"
                     if first_pass :
                         text += "\n> This transcription may not be accurate and is still being processed."
-
+                    else:
+                        interaction.edit_original_response(text)
+                        return
                 await interaction.response.send_message(text, ephemeral=True)
+
         except :
             logger.error("Error during button callback")
             await interaction.response.send_message("Error during the transcription", ephemeral=True)
