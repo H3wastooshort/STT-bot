@@ -22,7 +22,7 @@ WORKDIR /app
 
 #install ffmpeg
 RUN apt update
-RUN apt install ffmpeg
+RUN apt install ffmpeg -y
 
 #copy python dependencies
 COPY --from=builder /app/.venv /app/.venv
