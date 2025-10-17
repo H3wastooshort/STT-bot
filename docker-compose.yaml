@@ -1,0 +1,8 @@
+services:
+    stt-bot:
+        image: ghcr.io/h3wastooshort/stt-bot:latest
+        user: 1000:1000 #change this to a user with r/w for the cahce directory
+        volumes:
+          - ./cache:/data
+          - ./models:/.cache
+          - ./config.yaml:/app/config.yaml
