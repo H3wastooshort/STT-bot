@@ -24,8 +24,8 @@ tracemalloc.start()
 # Load configuration
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
-    AUDIO_PATH = Path(config.get("audio_path",None) or os.getenv("STTB_AUDIO_PATH","/cache/audio")
-    CACHE = Path(config.get("cache",None) or os.getenv("STTB_CACHE_PATH","/cache/text")
+    AUDIO_PATH = Path(config.get("audio_path",None) or os.getenv("STTB_AUDIO_PATH","/cache/audio"))
+    CACHE = Path(config.get("cache",None) or os.getenv("STTB_CACHE_PATH","/cache/text"))
     TOKEN = config.get("token",None) or os.getenv("STTB_TOKEN",None)
 
 if not TOKEN:
