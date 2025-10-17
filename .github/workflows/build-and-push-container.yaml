@@ -8,7 +8,7 @@ on:
       - v*
   workflow_dispatch:
 env:
-  IMAGE_NAME: STT-bot
+  IMAGE_NAME: stt-bot
 #
 jobs:
   # This pushes the image to GitHub Packages.
