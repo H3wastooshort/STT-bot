@@ -23,7 +23,8 @@ WORKDIR /app
 #copy python dependencies
 COPY --from=builder /app/.venv /app/.venv
 #copy application
-COPY utils/ speechtotext.py ./
+COPY utils ./utils
+COPY speechtotext.py ./
 
 #set venv
 ENV VIRTUAL_ENV=/app/.venv
