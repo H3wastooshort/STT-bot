@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from .load_conf import *
+TIMEOUT = cache_handling.cache_lifespan_to_timedelta().total_seconds()
 
 class ButtonsView(discord.ui.View):
     def __init__(self, message : discord.Message = None):

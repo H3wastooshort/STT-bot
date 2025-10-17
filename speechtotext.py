@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Start tracing memory allocations
 tracemalloc.start()
 
-from .load_conf import *
+from utils.load_conf import *
 
 if not TOKEN:
     logger.critical("Missing bot token!")
