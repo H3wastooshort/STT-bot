@@ -1,4 +1,4 @@
-#install pip packages
+##install pip packages
 FROM python:3.13-slim AS builder
 
 WORKDIR /app
@@ -10,10 +10,14 @@ RUN apt install git -y
 COPY requirements.txt ./
 RUN pip install --user --no-cache-dir -r requirements.txt
 
-#build final image
+
+
+##build final image
 FROM python:3.13-slim
 
-COPY --from=builder /root/.local /root/.local #copy python dependencies
-COPY utils speechtotext.py . #copy application
+#copy python dependencies
+COPY --from=builder /root/.local /root/.local
+#copy application
+COPY utils speechtotext.py .
 
 CMD [ "python", "./speechtotext.py" ]
